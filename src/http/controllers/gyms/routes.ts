@@ -1,17 +1,14 @@
 import { FastifyInstance } from 'fastify'
 
-import { verifyJwt } from '@/http/middlewares/verity-jwt'
-
 import { search } from './search'
 import { nearby } from './nearby'
 import { create } from './create'
-import { verifyUserRole } from '@/http/middlewares/verify-user-role'
+import { auth } from '@/http/middlewares/auth'
 
-export async function gymsRoutes(app: FastifyInstance) {
-  app.addHook('onRequest', verifyJwt)
+export const gymsRoutes = async (app: FastifyInstance) => {
+  app.register(auth)
 
-  app.get('/gyms/search', search)
-  app.get('/gyms/nearby', nearby)
-
-  app.post('/gyms', { onRequest: [verifyUserRole('ADMIN')] }, create)
+  app.register(search)
+  app.register(nearby)
+  app.register(create)
 }

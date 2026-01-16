@@ -1,42 +1,63 @@
-import { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import { z } from 'zod'
 
-export async function refresh(request: FastifyRequest, reply: FastifyReply) {
-  await request.jwtVerify({ onlyCookie: true })
-
-  const { role } = request.user
-
-  const token = await reply.jwtSign(
+export const refresh: FastifyPluginAsyncZod = async (app) => {
+  app.patch(
+    '/token/refresh',
     {
-      role,
-    },
-    {
-      sign: {
-        sub: request.user.sub,
+      onRequest: [(request) => request.jwtVerify({ onlyCookie: true })],
+      schema: {
+        summary: 'Refresh token',
+        tags: ['users'],
+        operationId: 'refreshTokenUser',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: z.object({
+            token: z.string(),
+          }),
+          401: z.object({
+            message: z.string(),
+          }),
+        },
       },
     },
-  )
+    async (request, reply) => {
+      const { sub, role } = request.user
 
-  const refreshToken = await reply.jwtSign(
-    {
-      role,
-    },
-    {
-      sign: {
-        sub: request.user.sub,
-        expiresIn: '7d',
-      },
+      const token = await reply.jwtSign(
+        {
+          role,
+        },
+        {
+          sign: {
+            sub,
+          },
+        },
+      )
+
+      const refreshToken = await reply.jwtSign(
+        {
+          role,
+        },
+        {
+          sign: {
+            sub,
+            expiresIn: '7d',
+          },
+        },
+      )
+
+      return reply
+        .setCookie('refreshToken', refreshToken, {
+          path: '/',
+          secure: true,
+          sameSite: true,
+          httpOnly: true,
+        })
+        .status(200)
+        .send({
+          token,
+        })
     },
   )
-
-  return reply
-    .setCookie('refreshToken', refreshToken, {
-      path: '/',
-      secure: true,
-      sameSite: true,
-      httpOnly: true,
-    })
-    .status(200)
-    .send({
-      token,
-    })
 }

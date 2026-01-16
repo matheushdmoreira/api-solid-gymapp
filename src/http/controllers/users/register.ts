@@ -1,34 +1,54 @@
 import { UserAlreadyExistsError } from '@/use-cases/errors/user-already-exists-error'
 import { makeRegisterUseCase } from '@/use-cases/factories/make-register-use-case'
-import { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 
-export async function register(request: FastifyRequest, reply: FastifyReply) {
-  const registerBodySchema = z.object({
-    name: z.string(),
-    email: z.string(),
-    password: z.string().min(6),
-  })
+export const register: FastifyPluginAsyncZod = async (app) => {
+  app.post(
+    '/users',
+    {
+      schema: {
+        summary: 'Register user',
+        tags: ['users'],
+        operationId: 'registerUser',
+        body: z.object({
+          name: z.string(),
+          email: z.string(),
+          password: z.string().min(6),
+        }),
+        response: {
+          201: z.null(),
+          401: z.object({
+            message: z.string(),
+          }),
+          409: z.object({
+            message: z.string(),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const { name, email, password } = request.body
 
-  const { name, email, password } = registerBodySchema.parse(request.body)
+      try {
+        const registerUseCase = makeRegisterUseCase()
 
-  try {
-    const registerUseCase = makeRegisterUseCase()
+        await registerUseCase.execute({
+          name,
+          email,
+          password,
+        })
 
-    await registerUseCase.execute({
-      name,
-      email,
-      password,
-    })
-  } catch (err) {
-    if (err instanceof UserAlreadyExistsError) {
-      return reply.status(409).send({
-        message: err.message,
-      })
-    }
+        return reply.status(201).send()
+      } catch (err) {
+        if (err instanceof UserAlreadyExistsError) {
+          return reply.status(409).send({
+            message: err.message,
+          })
+        }
 
-    throw err
-  }
-
-  return reply.status(201).send()
+        throw err
+      }
+    },
+  )
 }

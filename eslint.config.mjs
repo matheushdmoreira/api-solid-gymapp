@@ -18,6 +18,7 @@ export default [
       camelcase: 'off',
       '@typescript-eslint/no-unsafe-declaration-merging': 'off',
       '@typescript-eslint/no-explicit-any': 'off',
+      'no-useless-catch': 'off',
       'no-useless-constructor': 'off',
     },
   },

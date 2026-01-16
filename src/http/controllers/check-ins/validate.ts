@@ -1,19 +1,42 @@
 import { makeValidateCheckInUseCase } from '@/use-cases/factories/make-validate-check-in-use-case'
-import { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
 import { z } from 'zod'
 
-export async function validate(request: FastifyRequest, reply: FastifyReply) {
-  const validateCheckInParamsSchema = z.object({
-    checkInId: z.string().uuid(),
-  })
+export const validate: FastifyPluginAsyncZod = async (app) => {
+  app.patch(
+    '/check-ins/:checkInId/validate',
+    {
+      schema: {
+        summary: 'Validate check-ins',
+        tags: ['check-ins'],
+        operationId: 'checkInValidate',
+        security: [{ bearerAuth: [] }],
+        params: z.object({
+          checkInId: z.uuid(),
+        }),
+        response: {
+          200: z.object({
+            checkInsCount: z.number(),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      await request.verifyUserRole('ADMIN')
 
-  const { checkInId } = validateCheckInParamsSchema.parse(request.params)
+      const { checkInId } = request.params
 
-  const validateCheckInUseCase = makeValidateCheckInUseCase()
+      try {
+        const validateCheckInUseCase = makeValidateCheckInUseCase()
 
-  await validateCheckInUseCase.execute({
-    checkInId,
-  })
+        await validateCheckInUseCase.execute({
+          checkInId,
+        })
 
-  return reply.status(204).send()
+        return reply.status(204).send()
+      } catch (err) {
+        throw err
+      }
+    },
+  )
 }

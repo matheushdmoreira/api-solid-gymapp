@@ -1,14 +1,39 @@
 import { makeGetUserMetricsUseCase } from '@/use-cases/factories/make-get-user-metrics-use-case'
-import { FastifyReply, FastifyRequest } from 'fastify'
+import type { FastifyPluginAsyncZod } from 'fastify-type-provider-zod'
+import { z } from 'zod'
 
-export async function metrics(request: FastifyRequest, reply: FastifyReply) {
-  const getUserMetricsUseCase = makeGetUserMetricsUseCase()
+export const metrics: FastifyPluginAsyncZod = async (app) => {
+  app.get(
+    '/check-ins/metrics',
+    {
+      schema: {
+        summary: 'Metrics check-ins',
+        tags: ['check-ins'],
+        operationId: 'checkInMetrics',
+        security: [{ bearerAuth: [] }],
+        response: {
+          200: z.object({
+            checkInsCount: z.number(),
+          }),
+        },
+      },
+    },
+    async (request, reply) => {
+      const userId = await request.getCurrentUserId()
 
-  const { checkInsCount } = await getUserMetricsUseCase.execute({
-    userId: request.user.sub,
-  })
+      try {
+        const getUserMetricsUseCase = makeGetUserMetricsUseCase()
 
-  return reply.status(200).send({
-    checkInsCount,
-  })
+        const { checkInsCount } = await getUserMetricsUseCase.execute({
+          userId,
+        })
+
+        return reply.status(200).send({
+          checkInsCount,
+        })
+      } catch (err) {
+        throw err
+      }
+    },
+  )
 }

@@ -15,9 +15,7 @@ export const validate: FastifyPluginAsyncZod = async (app) => {
           checkInId: z.uuid(),
         }),
         response: {
-          200: z.object({
-            checkInsCount: z.number(),
-          }),
+          204: z.null(),
         },
       },
     },
@@ -33,7 +31,7 @@ export const validate: FastifyPluginAsyncZod = async (app) => {
           checkInId,
         })
 
-        return reply.status(204).send()
+        return reply.status(204).send(null)
       } catch (err) {
         throw err
       }

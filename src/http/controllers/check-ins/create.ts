@@ -23,17 +23,7 @@ export const create: FastifyPluginAsyncZod = async (app) => {
           }),
         }),
         response: {
-          200: z.object({
-            checkIns: z.array(
-              z.object({
-                id: z.string(),
-                user_id: z.string(),
-                gym_id: z.string(),
-                created_at: z.date(),
-                validated_at: z.date().nullable(),
-              }),
-            ),
-          }),
+          201: z.null(),
         },
       },
     },
@@ -52,7 +42,7 @@ export const create: FastifyPluginAsyncZod = async (app) => {
           userLongitude: longitude,
         })
 
-        return reply.status(201).send()
+        return reply.status(201).send(null)
       } catch (err) {
         throw err
       }
